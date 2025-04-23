@@ -7,7 +7,7 @@ const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
 
 // 👇 Use raw body to verify Slack signature
 app.use('/api', express.raw({ type: 'application/json' }));
-
+console.log('Event received:', JSON.stringify(body.event, null, 2));
 const SHOP_ON_CALL_REGEX = /\bshop[-\s]?on(?:[-\s]?|)call\b/i;
 
 app.post('/api', async (req, res) => {
@@ -36,6 +36,8 @@ app.post('/api', async (req, res) => {
     // ✅ Handle app_mention event
     if (body.event && body.event.type === 'app_mention') {
       const text = body.event.text;
+      console.log('Mention text:', text);
+      console.log('Regex test result:', SHOP_ON_CALL_REGEX.test(text));
 
       if (SHOP_ON_CALL_REGEX.test(text)) {
         await slackClient.chat.postMessage({
