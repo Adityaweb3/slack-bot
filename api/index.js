@@ -7,7 +7,6 @@ const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
 
 // 👇 Use raw body to verify Slack signature
 app.use('/api', express.raw({ type: 'application/json' }));
-console.log('Event received:', JSON.stringify(body.event, null, 2));
 const SHOP_ON_CALL_REGEX = /\bshop[-\s]?on(?:[-\s]?|)call\b/i;
 
 app.post('/api', async (req, res) => {
@@ -16,7 +15,6 @@ app.post('/api', async (req, res) => {
     const timestamp = req.headers['x-slack-request-timestamp'];
     const rawBody = req.body.toString('utf8');
 
-    // Verify request is from Slack
     const hmac = crypto.createHmac('sha256', process.env.SLACK_SIGNING_SECRET);
     const [version, hash] = slackSignature.split('=');
     hmac.update(`${version}:${timestamp}:${rawBody}`);
@@ -27,13 +25,11 @@ app.post('/api', async (req, res) => {
     }
 
     const body = JSON.parse(rawBody);
-
-    // ✅ Respond to Slack URL verification challenge
+    console.log('Event received:', JSON.stringify(body.event, null, 2));
     if (body.type === 'url_verification') {
       return res.status(200).send(body.challenge);
     }
 
-    // ✅ Handle app_mention event
     if (body.event && body.event.type === 'app_mention') {
       const text = body.event.text;
       console.log('Mention text:', text);
