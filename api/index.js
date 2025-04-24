@@ -7,8 +7,7 @@ const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
 
 // 👇 Use raw body to verify Slack signature
 app.use('/api', express.raw({ type: 'application/json' }));
-const SHOP_ON_CALL_REGEX = /\bshop[-\s]?on(?:[-\s]?|)call\b/i;
-
+const SHOP_ON_CALL_REGEX = /@?shop[-\s]?on[-\s]?call/i;
 app.post('/api', async (req, res) => {
   try {
     const slackSignature = req.headers['x-slack-signature'];
