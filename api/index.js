@@ -7,13 +7,20 @@ const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
 
 // 👇 Use raw body to verify Slack signature
 app.use('/api', express.raw({ type: 'application/json' }));
-const SHOP_ON_CALL_REGEX = /@?shop[-\s]?on[-\s]?call/i;
+
+// Regex to detect 'shop on call' variations in cleaned-up text
+const SHOP_ON_CALL_REGEX = /shop[-\s]?on[-\s]?call/i;
+// Your Slack user group ID for @shop-oncall
+// const SHOP_ONCALL_SUBTEAM_ID = 'S08FE0Y4USK';
+const SHOP_ONCALL_SUBTEAM_ID = process.env.SHOP_ONCALL_SUBTEAM_ID;
+
 app.post('/api', async (req, res) => {
   try {
     const slackSignature = req.headers['x-slack-signature'];
     const timestamp = req.headers['x-slack-request-timestamp'];
     const rawBody = req.body.toString('utf8');
 
+    // Validate Slack request signature
     const hmac = crypto.createHmac('sha256', process.env.SLACK_SIGNING_SECRET);
     const [version, hash] = slackSignature.split('=');
     hmac.update(`${version}:${timestamp}:${rawBody}`);
@@ -24,20 +31,29 @@ app.post('/api', async (req, res) => {
     }
 
     const body = JSON.parse(rawBody);
-    console.log('Event received:', JSON.stringify(body.event, null, 2));
+    const event = body.event;
+
     if (body.type === 'url_verification') {
       return res.status(200).send(body.challenge);
     }
 
-    if (body.event && body.event.type === 'app_mention') {
-      const text = body.event.text;
-      console.log('Mention text:', text);
-      console.log('Regex test result:', SHOP_ON_CALL_REGEX.test(text));
+    if (event && event.type === 'app_mention') {
+      const rawText = event.text || '';
+      console.log('Raw Slack text:', rawText);
 
-      if (SHOP_ON_CALL_REGEX.test(text)) {
+      // Remove Slack mentions like <@USERID> or <!subteam^ID>
+      const cleanedText = rawText.replace(/<[@!][^>]+>/g, '').trim();
+      console.log('Cleaned text:', cleanedText);
+
+      const containsSubteamMention = rawText.includes(`<!subteam^${SHOP_ONCALL_SUBTEAM_ID}>`);
+      const matchesRegex = SHOP_ON_CALL_REGEX.test(cleanedText);
+      console.log('Subteam ID match:', containsSubteamMention);
+      console.log('Regex test result:', matchesRegex);
+
+      if (containsSubteamMention || matchesRegex) {
         await slackClient.chat.postMessage({
           channel: process.env.SHOP_CHANNEL_ID,
-          text: `🔔 Shop On-Call: "${text}"`,
+          text: `🔔 Shop On-Call: "${rawText}"`,
         });
       }
     }
