@@ -52,7 +52,7 @@ app.post('/api', async (req, res) => {
             type: "section",
             text: {
               type: "mrkdwn",
-             text: `🚨 *Heads up!*\n🔔 <@subteam^${SHOP_ONCALL_SUBTEAM_ID}> is mentioned in <#${channelId}>`
+             text: `🚨 *Heads up!*\n🔔 @shop-oncall is mentioned in <#${channelId}>`
             }
           },
           {
